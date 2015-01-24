@@ -1,0 +1,415 @@
+<h1 id="bit-twiddling-hacks">Bit Twiddling Hacks</h1>
+<h3 id="by-sean-eron-anderson-seander-cs-stanford-edu-seander-cs-stanford-edu-">By Sean Eron Anderson <a href="seander@cs.stanford.edu">seander@cs.stanford.edu</a></h3>
+<h3 id="converted-to-markdown-by-joe-gibson-gibsjose-mail-gvsu-edu-gibsjose-mail-gvsu-edu-">Converted to Markdown by Joe Gibson <a href="gibsjose@mail.gvsu.edu">gibsjose@mail.gvsu.edu</a></h3>
+<p>Individually, the code snippets here are in the public domain (unless otherwise noted) — feel free to use them however you please. The aggregate collection and descriptions are © 1997-2005 Sean Eron Anderson. <em>The code and descriptions are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY and without even the implied warranty of merchantability or fitness for a particular purpose.</em> As of May 5, 2005, all the code has been tested thoroughly. Thousands of people have read it. Moreover, Professor Randal Bryant, the Dean of Computer Science at Carnegie Mellon University, has personally tested almost everything with his Uclid code verification system. What he hasn't tested, I have checked against all possible inputs on a 32-bit machine. To the first person to inform me of a legitimate bug in the code, I'll pay a bounty of US$10 (by check or Paypal). If directed to a charity, I'll pay US$20.</p>
+<h3 id="about-the-operation-counting-methodology">About the operation counting methodology</h3>
+<p>When totaling the number of operations for algorithms here, any C operator is counted as one operation. Intermediate assignments, which need not be written to RAM, are not counted. Of course, this operation counting approach only serves as an approximation of the actual number of machine instructions and CPU time. All operations are assumed to take the same amount of time, which is not true in reality, but CPUs have been heading increasingly in this direction over time. There are many nuances that determine how fast a system will run a given sample of code, such as cache sizes, memory bandwidths, instruction sets, etc. In the end, benchmarking is the best way to determine whether one method is really faster than another, so consider the techniques below as possibilities to test on your target architecture.</p>
+<h2 id="compute-the-sign-of-an-integer">Compute the sign of an integer</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The last expression above evaluates to <code>sign = v &gt;&gt; 31</code> for 32-bit integers. This is one operation faster than the obvious way, <code>sign = -(v &lt; 0)</code>. This trick works because when signed integers are shifted right, the value of the far left bit is copied to the other bits. The far left bit is <code>1</code> when the value is negative and <code>0</code> otherwise; all <code>1</code> bits gives <code>-1</code>. Unfortunately, this behavior is architecture-specific.
+Alternatively, if you prefer the result be either <code>-1</code> or <code>+1</code>, then use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>On the other hand, if you prefer the result be either <code>-1</code>, <code>0</code>, or <code>+1</code>, then use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>If instead you want to know if something is non-negative, resulting in <code>+1</code> or else <code>0</code>, then use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>On March 7, 2003, Angus Duggan pointed out that the 1989 ANSI C specification leaves the result of signed right-shift implementation-defined, so on some systems this hack might not work.</em></p>
+<p><em>For greater portability, Toby Speight suggested on September 28, 2005 that CHAR_BIT be used here and throughout rather than assuming bytes were 8 bits long.</em></p>
+<p><em>Angus recommended the more portable versions above, involving casting on March 4, 2006. </em></p>
+<p><em>Rohit Garg suggested the version for non-negative integers on September 12, 2009.</em></p>
+<h2 id="detect-if-two-integers-have-opposite-signs">Detect if two integers have opposite signs</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Some CPUs don't have an integer absolute value instruction (or the compiler fails to use them). On machines where branching is expensive, the above expression can be faster than the obvious approach, <code>r = (v &lt; 0) ? -(unsigned)v : v</code>, even though the number of operations is the same.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On March 7, 2003, Angus Duggan pointed out that the 1989 ANSI C specification leaves the result of signed right-shift implementation-defined, so on some systems this hack might not work. I've read that ANSI C does not require values to be represented as two's complement, so it may not work for that reason as well (on a diminishingly small number of old machines that still use one's complement).</em></p>
+<p><em>On March 14, 2004, Keith H. Duggar sent me the patented variation above; it is superior to the one I initially came up with, `r=(+1|(v&gt;&gt;(sizeof(int)</em>CHAR_BIT-1)))<em>v`, because a multiply is not used. Unfortunately, this method has been patented in the USA on June 6, 2000 by Vladimir Yu Volkonsky and assigned to Sun Microsystems.</em></p>
+<p><em>On August 13, 2006, Yuriy Kaminskiy told me that the patent is likely invalid because the method was published well before the patent was even filed, such as in How to Optimize for the Pentium Processor by Agner Fog, dated November, 9, 1996. Yuriy also mentioned that this document was translated to Russian in 1997, which Vladimir could have read. Moreover, the Internet Archive also has an old link to it.</em></p>
+<p><em>On January 30, 2007, Peter Kankowski shared with me an abs version he discovered that was inspired by Microsoft's Visual C++ compiler output. It is featured here as the primary solution.</em></p>
+<p><em>On December 6, 2007, Hai Jin complained that the result was signed, so when computing the abs of the most negative value, it was still negative.</em></p>
+<p><em>On April 15, 2008 Andrew Shapira pointed out that the obvious approach could overflow, as it lacked an <code>(unsigned)</code> cast then; for maximum portability he suggested <code>(v &lt; 0) ? (1 + ((unsigned)(-1-v))) : (unsigned)v</code>. But citing the ISO C99 spec on July 9, 2008, Vincent Lefèvre convinced me to remove it because even on non-2s-complement machines <code>-(unsigned)v</code> will do the right thing. The evaluation of <code>-(unsigned)v</code> first converts the negative value of <code>v</code> to an unsigned by adding <code>2**N</code>, yielding a 2s complement representation of <code>v</code>'s value that I'll call <code>U</code>. Then, <code>U</code> is negated, giving the desired result, <code>-U = 0 - U = 2**N - U = 2**N - (v+2**N) = -v = abs(v)</code>.</em></p>
+<h2 id="compute-the-minimum-min-or-maximum-max-of-two-integers-without-branching">Compute the minimum (min) or maximum (max) of two integers without branching</h2>
+<h4 id="to-find-the-minimum-use-">To find the minimum, use:</h4>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:*</strong>
+On some rare machines where branching is very expensive and no condition move instructions exist, the above expression might be faster than the obvious approach, <code>r = (x &lt; y) ? x : y</code>, even though it involves two more instructions. (Typically, the obvious approach is best, though.) It works because if <code>x &lt; y</code>, then <code>-(x &lt; y)</code> will be all ones, so <code>r = y ^ (x ^ y) &amp; ~0 = y ^ x ^ y = x</code>. Otherwise, if <code>x &gt;= y</code>, then <code>-(x &lt; y)</code> will be all zeros, so <code>r = y ^ ((x ^ y) &amp; 0) = y</code>. On some machines, evaluating <code>(x &lt; y)</code> as <code>0</code> or <code>1</code> requires a branch instruction, so there may be no advantage.</p>
+<h4 id="to-find-the-maximum-use-">To find the maximum, use:</h4>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<h4 id="quick-and-dirty-versions-">Quick and dirty versions:</h4>
+<p>If you know that <code>INT_MIN &lt;= x - y &lt;= INT_MAX</code>, then you can use the following, which are faster because <code>(x - y)</code> only needs to be evaluated once.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Note that the 1989 ANSI C specification doesn't specify the result of signed right-shift, so these aren't portable. If exceptions are thrown on overflows, then the values of <code>x</code> and <code>y</code> should be unsigned or cast to unsigned for the subtractions to avoid unnecessarily throwing an exception, however the right-shift needs a signed operand to produce all one bits when negative, so cast to signed there.</em></p>
+<p><em>On March 7, 2003, Angus Duggan pointed out the right-shift portability issue.</em></p>
+<p><em>On May 3, 2005, Randal E. Bryant alerted me to the need for the precondition, <code>INT_MIN &lt;= x - y &lt;= INT_MAX</code>, and suggested the non-quick and dirty version as a fix. Both of these issues concern only the quick and dirty version.</em></p>
+<p><em>Nigel Horspoon observed on July 6, 2005 that <code>gcc</code> produced the same code on a Pentium as the obvious solution because of how it evaluates <code>(x &lt; y)</code>.</em></p>
+<p><em>On July 9, 2008 Vincent Lefèvre pointed out the potential for overflow exceptions with subtractions in <code>r = y + ((x - y) &amp; -(x &lt; y))</code>, which was the previous version.</em></p>
+<p><em>Timothy B. Terriberry suggested using xor rather than add and subract to avoid casting and the risk of overflows on June 2, 2009.</em></p>
+<h2 id="determining-if-an-integer-is-a-power-of-2">Determining if an integer is a power of 2</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Note that <code>0</code> is incorrectly considered a power of 2 here. To remedy this, use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<h2 id="sign-extending-from-a-constant-bit-width">Sign extending from a constant bit-width</h2>
+<p>Sign extension is automatic for built-in types, such as chars and ints. But suppose you have a signed two's complement number, <code>x</code>, that is stored using only <code>b</code> bits. Moreover, suppose you want to convert <code>x</code> to an int, which has more than <code>b</code> bits. A simple copy will work if <code>x</code> is positive, but if negative, the sign must be extended. For example, if we have only 4 bits to store a number, then -3 is represented as <code>1101</code> in binary. If we have 8 bits, then -3 is <code>11111101</code>. The most-significant bit of the 4-bit representation is replicated sinistrally to fill in the destination when we convert to a representation with more bits; this is sign extending. In C, sign extension from a constant bit-width is trivial, since bit fields may be specified in structs or unions. For example, to convert from 5 bits to an full integer:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The following is a C++ template function that uses the same language feature to convert from B bits in one operation (though the compiler is generating more, of course).</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source cpp" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>John Byrd caught a typo in the code (attributed to html formatting) on May 2, 2005.</em></p>
+<p><em>On March 4, 2006, Pat Wood pointed out that the ANSI C standard requires that the bitfield have the keyword "signed" to be signed; otherwise, the sign is undefined.</em></p>
+<h2 id="sign-extending-from-a-variable-bit-width">Sign extending from a variable bit-width</h2>
+<p>Sometimes we need to extend the sign of a number but we don't know a priori the number of bits, <code>b</code>, in which it is represented. (Or we could be programming in a language like Java, which lacks bitfields.)</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above requires four operations, but when the bitwidth is a constant rather than variable, it requires only two fast operations, assuming the upper bits are already zeroes.</p>
+<p>A slightly faster but less portable method that doesn't depend on the bits in x above position b being zero is:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Sean A. Irvine suggested that I add sign extension methods to this page on June 13, 2004, and he provided <code>m = (1 &lt;&lt; (b - 1)) - 1; r = -(x &amp; ~m) | x;</code> as a starting point from which I optimized to get <code>m = 1U &lt;&lt; (b - 1); r = -(x &amp; m) | x</code>.</em></p>
+<p><em>But then on May 11, 2007, Shay Green suggested the version above, which requires one less operation than mine.</em></p>
+<p><em>Vipin Sharma suggested I add a step to deal with situations where <code>x</code> had possible ones in bits other than the <code>b</code> bits we wanted to sign-extend on Oct. 15, 2008.</em></p>
+<p><em>On December 31, 2009 Chris Pirazzi suggested I add the faster version, which requires two operations for constant bit-widths and three for variable widths.</em></p>
+<h2 id="sign-extending-from-a-variable-bit-width-in-3-operations">Sign extending from a variable bit-width in 3 operations</h2>
+<p>The following may be slow on some machines, due to the effort required for multiplication and division. This version is 4 operations. If you know that your initial bit-width, <code>b</code>, is greater than 1, you might do this type of sign extension in 3 operations by using <code>r = (x * multipliers[b]) / multipliers[b]</code>, which requires only one array lookup.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The following variation is not portable, but on architectures that employ an arithmetic right-shift, maintaining the sign, it should be fast.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p>*Randal E. Bryant pointed out a bug on May 3, 2005 in an earlier version (that used <code>multipliers[]</code> for <code>divisors[]</code>), where it failed on the case of <code>x=1</code> and <code>b=1</code>.</p>
+<h2 id="conditionally-set-or-clear-bits-without-branching">Conditionally set or clear bits without branching</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>On some architectures, the lack of branching can more than make up for what appears to be twice as many operations. For instance, informal speed tests on an AMD Athlon™ XP 2100+ indicated it was 5-10% faster. An Intel Core 2 Duo ran the superscalar version about 16% faster than the first.</em></p>
+<p><em>Glenn Slayden informed me of the first expression on December 11, 2003.</em></p>
+<p><em>Marco Yu shared the superscalar version with me on April 3, 2007 and alerted me to a typo 2 days later.</em></p>
+<h2 id="conditionally-negate-a-value-without-branching">Conditionally negate a value without branching</h2>
+<p>If you need to negate only when a flag is false, then use the following to avoid branching:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:*</strong></p>
+<p><em>Avraham Plotnitzky suggested I add the first version on June 2, 2009. Motivated to avoid the multiply, I came up with the second version on June 8, 2009.</em></p>
+<p><em>Alfonso De Gregorio pointed out that some parens were missing on November 26, 2009, and received a bug bounty.</em></p>
+<h2 id="merge-bits-from-two-values-according-to-a-mask">Merge bits from two values according to a mask</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>This shaves one operation from the obvious way of combining two sets of bits according to a bit mask. If the mask is a constant, then there may be no advantage. Ron Jeffery sent this to me on February 9, 2006.</em></p>
+<h2 id="counting-bits-set-naive-way-">Counting bits set (naive way)</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The naive approach requires one iteration per bit, until no more bits are set. So on a 32-bit word with only the high set, it will go through 32 iterations.</p>
+<h2 id="counting-bits-set-by-lookup-table">Counting bits set by lookup table</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>On July 14, 2009 Hallvard Furuseth suggested the macro compacted table.</em></p>
+<h2 id="counting-bits-set-brian-kernighan-s-way">Counting bits set, Brian Kernighan's way</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Brian Kernighan's method goes through as many iterations as there are set bits. So if we have a 32-bit word with only the high bit set, then it will only go once through the loop.</em></p>
+<p><em>Published in 1988, the C Programming Language 2nd Ed. (by Brian W. Kernighan and Dennis M. Ritchie) mentions this in exercise 2-9. On April 19, 2006 Don Knuth pointed out to me that this method "was first published by Peter Wegner in CACM 3 (1960), 322. (Also discovered independently by Derrick Lehmer and published in 1964 in a book edited by Beckenbach.)"</em></p>
+<h2 id="counting-bits-set-in-14-24-or-32-bit-words-using-64-bit-instructions">Counting bits set in 14, 24, or 32-bit words using 64-bit instructions</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This method requires a 64-bit CPU with fast modulus division to be efficient. The first option takes only 3 operations; the second option takes 10; and the third option takes 15.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Rich Schroeppel originally created a 9-bit version, similiar to option 1; see the Programming Hacks section of Beeler, M., Gosper, R. W., and Schroeppel, R. HAKMEM. MIT AI Memo 239, Feb. 29, 1972. His method was the inspiration for the variants above, devised by Sean Anderson. Randal E.</em></p>
+<p><em>Bryant offered a couple bug fixes on May 3, 2005.</em></p>
+<p><em>Bruce Dawson tweaked what had been a 12-bit version and made it suitable for 14 bits using the same number of operations on Feburary 1, 2007.</em></p>
+<h2 id="counting-bits-set-in-parallel">Counting bits set, in parallel</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The B array, expressed as binary, is:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>We can adjust the method for larger integer sizes by continuing with the patterns for the Binary Magic Numbers, <code>B</code> and <code>S</code>. If there are <code>k</code> bits, then we need the arrays <code>S</code> and <code>B</code> to be <code>ceil(lg(k))</code> elements long, and we must compute the same number of expressions for <code>c</code> as <code>S</code> or <code>B</code> are long. For a 32-bit <code>v</code>, 16 operations are used.</p>
+<p>The best method for counting bits in a 32-bit integer <code>v</code> is the following:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The best bit counting method takes only 12 operations, which is the same as the lookup-table method, but avoids the memory and potential cache misses of a table. It is a hybrid between the purely parallel method above and the earlier methods using multiplies (in the section on counting bits with 64-bit instructions), though it doesn't use 64-bit instructions. The counts of bits set in the bytes is done in parallel, and the sum total of the bits set in the bytes is computed by multiplying by <code>0x1010101</code> and shifting right 24 bits.</p>
+<p>A generalization of the best bit counting method to integers of bit-widths upto 128 (parameterized by type <code>T</code>) is this:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source cpp" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>See Ian Ashdown's nice newsgroup post for more information on counting the number of bits set (also known as sideways addition).</em></p>
+<p><em>The best bit counting method was brought to my attention on October 5, 2005 by Andrew Shapira; he found it in pages 187-188 of Software Optimization Guide for AMD Athlon™ 64 and Opteron™ Processors.</em></p>
+<p><em>Charlie Gordon suggested a way to shave off one operation from the purely parallel version on December 14, 2005, and Don Clugston trimmed three more from it on December 30, 2005.</em></p>
+<p><em>I made a typo with Don's suggestion that Eric Cole spotted on January 8, 2006.</em></p>
+<p><em>Eric later suggested the arbitrary bit-width generalization to the best method on November 17, 2006.</em></p>
+<p><em>On April 5, 2007, Al Williams observed that I had a line of dead code at the top of the first method.</em></p>
+<h2 id="count-bits-set-rank-from-the-most-significant-bit-upto-a-given-position">Count bits set (rank) from the most-significant bit upto a given position</h2>
+<p>The following finds the the rank of a bit, meaning it returns the sum of bits that are set to <code>1</code> from the most-signficant bit downto the bit at the given position.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Juha Järvi sent this to me on November 21, 2009 as an inverse operation to the computing the bit position with the given rank, which follows.</em></p>
+<h2 id="select-the-bit-position-from-the-most-significant-bit-with-the-given-count-rank-">Select the bit position (from the most-significant bit) with the given count (rank)</h2>
+<p>The following 64-bit code selects the position of the <code>r</code>th <code>1</code> bit when counting from the left. In other words if we start at the most significant bit and proceed to the right, counting the number of bits set to <code>1</code> until we reach the desired rank, <code>r</code>, then the position where we stop is returned. If the rank requested exceeds the count of bits set, then 64 is returned. The code may be modified for 32-bit or counting from the right.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>If branching is fast on your target CPU, consider uncommenting the if-statements and commenting the lines that follow them.</strong></p>
+<p><strong>Notes:*</strong></p>
+<p><em>Juha Järvi sent this to me on November 21, 2009.</em></p>
+<h2 id="computing-parity-the-naive-way">Computing parity the naive way</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The above code uses an approach like Brian Kernigan's bit counting, above. The time it takes is proportional to the number of bits set.</p>
+<h2 id="compute-parity-by-lookup-table">Compute parity by lookup table</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Randal E. Bryant encouraged the addition of the (admittedly) obvious last variation with variable p on May 3, 2005.</em></p>
+<p><em>Bruce Rawles found a typo in an instance of the table variable's name on September 27, 2005, and he received a $10 bug bounty.</em></p>
+<p><em>On October 9, 2006, Fabrice Bellard suggested the 32-bit variations above, which require only one table lookup; the previous version had four lookups (one per byte) and were slower.</em></p>
+<p><em>On July 14, 2009 Hallvard Furuseth suggested the macro compacted table.</em></p>
+<h2 id="compute-parity-of-a-byte-using-64-bit-multiply-and-modulus-division">Compute parity of a byte using 64-bit multiply and modulus division</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The method above takes around 4 operations, but only works on bytes.</p>
+<h2 id="compute-parity-of-word-with-a-multiply">Compute parity of word with a multiply</h2>
+<p>The following method computes the parity of the 32-bit value in only 8 operations using a multiply.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Also for 64-bits, 8 operations are still enough.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Andrew Shapira came up with this and sent it to me on Sept. 2, 2007.</em></p>
+<h2 id="compute-parity-in-parallel">Compute parity in parallel</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The method above takes around 9 operations, and works for 32-bit words. It may be optimized to work just on bytes in 5 operations by removing the two lines immediately following <code>unsigned int v;</code>. The method first shifts and XORs the eight nibbles of the 32-bit value together, leaving the result in the lowest nibble of <code>v</code>. Next, the binary number <code>0110 1001 1001 0110</code> (<code>0x6996</code> in hex) is shifted to the right by the value represented in the lowest nibble of <code>v</code>. This number is like a miniature 16-bit parity-table indexed by the low four bits in <code>v</code>. The result has the parity of <code>v</code> in bit <code>1</code>, which is masked and returned.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Thanks to Mathew Hendry for pointing out the shift-lookup idea at the end on Dec. 15, 2002. That optimization shaves two operations off using only shifting and XORing to find the parity.</em></p>
+<h2 id="swapping-values-with-subtraction-and-addition">Swapping values with subtraction and addition</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This swaps the values of <code>a</code> and <code>b</code> without using a temporary variable. The initial check for <code>a</code> and <code>b</code> being the same location in memory may be omitted when you know this can't happen. (The compiler may omit it anyway as an optimization.) If you enable overflows exceptions, then pass unsigned values so an exception isn't thrown. The XOR method that follows may be slightly faster on some machines. Don't use this with floating-point numbers (unless you operate on their raw integer representations).</p>
+<p><strong>Notes:</strong></p>
+<p><em>Sanjeev Sivasankaran suggested I add this on June 12, 2007.</em></p>
+<p><em>Vincent Lefèvre pointed out the potential for overflow exceptions on July 9, 2008</em></p>
+<h2 id="swapping-values-with-xor">Swapping values with XOR</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This is an old trick to exchange the values of the variables <code>a</code> and <code>b</code> without using extra space for a temporary variable.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On January 20, 2005, Iain A. Fleming pointed out that the macro above doesn't work when you swap with the same memory location, such as <code>SWAP(a[i], a[j])</code> with <code>i == j</code>. So if that may occur, consider defining the macro as <code>(((a) == (b)) || (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))))</code>.</em></p>
+<p><em>On July 14, 2009, Hallvard Furuseth suggested that on some machines, <code>(((a) ^ (b)) &amp;&amp; ((b) ^= (a) ^= (b), (a) ^= (b)))</code> might be faster, since the <code>(a) ^ (b)</code> expression is reused.</em></p>
+<h2 id="swapping-individual-bits-with-xor">Swapping individual bits with XOR</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>As an example of swapping ranges of bits suppose we have have <code>b = 00101111</code> (expressed in binary) and we want to swap the <code>n = 3</code> consecutive bits starting at <code>i = 1</code> (the second bit from the right) with the 3 consecutive bits starting at <code>j = 5;</code> the result would be <code>r = 11100011</code> (binary).</p>
+<p>This method of swapping is similar to the general purpose XOR swap trick, but intended for operating on individual bits. The variable <code>x</code> stores the result of XORing the pairs of bit values we want to swap, and then the bits are set to the result of themselves XORed with <code>x</code>.  Of course, the result is undefined if the sequences overlap.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On July 14, 2009 Hallvard Furuseth suggested that I change the <code>1 &lt;&lt; n</code> to <code>1U &lt;&lt; n</code> because the value was being assigned to an unsigned and to avoid shifting into a sign bit.</em></p>
+<h1 id="reverse-bits-the-obvious-way">Reverse bits the obvious way</h1>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>On October 15, 2004, Michael Hoisie pointed out a bug in the original version.</em></p>
+<p><em>Randal E. Bryant suggested removing an extra operation on May 3, 2005.</em></p>
+<p><em>Behdad Esfabod suggested a slight change that eliminated one iteration of the loop on May 18, 2005.</em></p>
+<p><em>Then, on February 6, 2007, Liyong Zhou suggested a better version that loops while <code>v</code> is not <code>0</code>, so rather than iterating over all bits it stops early.</em></p>
+<h2 id="reverse-bits-in-word-by-lookup-table">Reverse bits in word by lookup table</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The first method takes about 17 operations, and the second takes about 12, assuming your CPU can load and store bytes easily.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On July 14, 2009 Hallvard Furuseth suggested the macro compacted table.</em></p>
+<h2 id="reverse-the-bits-in-a-byte-with-3-operations-64-bit-multiply-and-modulus-division-">Reverse the bits in a byte with 3 operations (64-bit multiply and modulus division):</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The multiply operation creates five separate copies of the 8-bit byte pattern to fan-out into a 64-bit value. The AND operation selects the bits that are in the correct (reversed) positions, relative to each 10-bit groups of bits. The multiply and the AND operations copy the bits from the original byte so they each appear in only one of the 10-bit sets. The reversed positions of the bits from the original byte coincide with their relative positions within any 10-bit set. The last step, which involves modulus division by <code>2^10 - 1</code>, has the effect of merging together each set of 10 bits (from positions 0-9, 10-19, 20-29, ...) in the 64-bit value. They do not overlap, so the addition steps underlying the modulus division behave like or operations.</p>
+<p><strong>Notes:</strong></p>
+<p><em>This method was attributed to Rich Schroeppel in the Programming Hacks section of Beeler, M., Gosper, R. W., and Schroeppel, R. HAKMEM. MIT AI Memo 239, Feb. 29, 1972.</em></p>
+<h2 id="reverse-the-bits-in-a-byte-with-4-operations-64-bit-multiply-no-division-">Reverse the bits in a byte with 4 operations (64-bit multiply, no division):</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The following shows the flow of the bit values with the boolean variables <code>a, b, c, d, e, f, g,</code> and <code>h</code>, which comprise an 8-bit byte. Notice how the first multiply fans out the bit pattern to multiple copies, while the last multiply combines them in the fifth byte from the right.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="text plain" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor><p>Note that the last two steps can be combined on some processors because the registers can be accessed as bytes; just multiply so that a register stores the upper 32 bits of the result and the take the low byte. Thus, it may take only 6 operations.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Devised by Sean Anderson, July 13, 2001.</em></p>
+<h2 id="reverse-the-bits-in-a-byte-with-7-operations-no-64-bit-">Reverse the bits in a byte with 7 operations (no 64-bit):</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Make sure you assign or cast the result to an unsigned char to remove garbage in the higher bits.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Devised by Sean Anderson, July 13, 2001.</em></p>
+<p><em>Typo spotted and correction supplied by Mike Keith, January 3, 2002.</em></p>
+<h2 id="reverse-an-n-bit-quantity-in-parallel-in-5-lg-n-operations-">Reverse an N-bit quantity in parallel in 5 * lg(N) operations:</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The following variation is also <code>O(lg(N))</code>, however it requires more operations to reverse <code>v</code>. Its virtue is in taking less slightly memory by computing the constants on the fly.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>These methods above are best suited to situations where <code>N</code> is large. If you use the above with 64-bit ints (or larger), then you need to add more lines (following the pattern); otherwise only the lower 32 bits will be reversed and the result will be in the lower 32 bits.</p>
+<p><strong>Notes:</strong></p>
+<p><em>See Dr. Dobb's Journal 1983, Edwin Freed's article on Binary Magic Numbers for more information.</em></p>
+<p><em>The second variation was suggested by Ken Raeburn on September 13, 2005.</em></p>
+<p><em>Veldmeijer mentioned that the first version could do without ANDS in the last line on March 19, 2006.</em></p>
+<h2 id="compute-modulus-division-by-1-s-without-a-division-operator">Compute modulus division by 1 &lt;&lt; s without a division operator</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Most programmers learn this trick early, but it was included for the sake of completeness.</p>
+<h2 id="compute-modulus-division-by-1-s-1-without-a-division-operator">Compute modulus division by (1 &lt;&lt; s) - 1 without a division operator</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This method of modulus division by an integer that is one less than a power of 2 takes at most <code>5 + (4 + 5 * ceil(N / s)) * ceil(lg(N / s))</code> operations, where <code>N</code> is the number of bits in the numerator. In other words, it takes at most <code>O(N * lg(N))</code> time.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Devised by Sean Anderson, August 15, 2001.</em></p>
+<p><em>Before Sean A. Irvine corrected me on June 17, 2004, I mistakenly commented that we could alternatively assign <code>m = ((m + 1) &amp; d) - 1;</code> at the end.</em></p>
+<p><em>Michael Miller spotted a typo in the code April 25, 2005.</em></p>
+<h2 id="compute-modulus-division-by-1-s-1-in-parallel-without-a-division-operator">Compute modulus division by (1 &lt;&lt; s) - 1 in parallel without a division operator</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This method of finding modulus division by an integer that is one less than a power of 2 takes at most <code>O(lg(N))</code> time, where <code>N</code> is the number of bits in the numerator (32 bits, for the code above). The number of operations is at most <code>12 + 9 * ceil(lg(N))</code>. The tables may be removed if you know the denominator at compile time; just extract the few relevent entries and unroll the loop. It may be easily extended to more bits.</p>
+<p>It finds the result by summing the values in base <code>(1 &lt;&lt; s)</code> in parallel. First every other base <code>(1 &lt;&lt; s)</code> value is added to the previous one. Imagine that the result is written on a piece of paper. Cut the paper in half, so that half the values are on each cut piece. Align the values and sum them onto a new piece of paper. Repeat by cutting this paper in half (which will be a quarter of the size of the previous one) and summing, until you cannot cut further. After performing <code>lg(N/s/2)</code> cuts, we cut no more; just continue to add the values and put the result onto a new piece of paper as before, while there are at least two s-bit values.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Devised by Sean Anderson, August 20, 2001.</em></p>
+<p><em>A typo was spotted by Randy E. Bryant on May 3, 2005 (after pasting the code, I had later added "unsinged" to a variable declaration).</em></p>
+<p><em>As in the previous hack, I mistakenly commented that we could alternatively assign <code>m = ((m + 1) &amp; d) - 1;</code> at the end, and Don Knuth corrected me on April 19, 2006 and suggested <code>m = m &amp; -((signed)(m - d) &gt;&gt; s)</code>.</em></p>
+<p><em>On June 18, 2009 Sean Irvine proposed a change that used <code>((n &gt;&gt; s) &amp; M[s])</code> instead of <code>((n &amp; ~M[s]) &gt;&gt; s)</code>, which typically requires fewer operations because the <code>M[s]</code> constant is already loaded.</em></p>
+<h2 id="find-the-log-base-2-of-an-integer-with-the-msb-n-set-in-o-n-operations-the-obvious-way-">Find the log base 2 of an integer with the MSB N set in O(N) operations (the obvious way)</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The log base 2 of an integer is the same as the position of the highest bit set (or most significant bit set, MSB). The following log base 2 methods are faster than this one.</p>
+<h2 id="find-the-integer-log-base-2-of-an-integer-with-an-64-bit-ieee-float">Find the integer log base 2 of an integer with an 64-bit IEEE float</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above loads a 64-bit (IEEE-754 floating-point) double with a 32-bit integer (with no paddding bits) by storing the integer in the mantissa while the exponent is set to <code>252</code>. From this newly minted double, <code>252</code> (expressed as a double) is subtracted, which sets the resulting exponent to the log base 2 of the input value, <code>v</code>. All that is left is shifting the exponent bits into position (20 bits right) and subtracting the bias, <code>0x3FF</code> (which is <code>1023</code> decimal). This technique only takes 5 operations, but many CPUs are slow at manipulating doubles, and the endianess of the architecture must be accommodated.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Eric Cole sent me this on January 15, 2006.</em></p>
+<p><em>Evan Felix pointed out a typo on April 4, 2006.</em></p>
+<p><em>Vincent Lefèvre told me on July 9, 2008 to change the endian check to use the float's endian, which could differ from the integer's endian.</em></p>
+<h2 id="find-the-log-base-2-of-an-integer-with-a-lookup-table">Find the log base 2 of an integer with a lookup table</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The lookup table method takes only about 7 operations to find the log of a 32-bit value. If extended for 64-bit quantities, it would take roughly 9 operations. Another operation can be trimmed off by using four tables, with the possible additions incorporated into each. Using int table elements may be faster, depending on your architecture.</p>
+<p>The code above is tuned to uniformly distributed output values. If your inputs are evenly distributed across all 32-bit values, then consider using the following:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>To initially generate the log table algorithmically:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:*</strong></p>
+<p><em>Behdad Esfahbod and I shaved off a fraction of an operation (on average) on May 18, 2005.</em></p>
+<p><em>Yet another fraction of an operation was removed on November 14, 2006 by Emanuel Hoogeveen.</em></p>
+<p><em>The variation that is tuned to evenly distributed input values was suggested by David A. Butterfield on September 19, 2008.</em></p>
+<p><em>Venkat Reddy told me on January 5, 2009 that <code>log(0)</code> should return <code>-1</code> to indicate an error, so I changed the first entry in the table to that.*</em></p>
+<h2 id="find-the-log-base-2-of-an-n-bit-integer-in-o-lg-n-operations">Find the log base 2 of an N-bit integer in O(lg(N)) operations</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Of course, to extend the code to find the log of a 33- to 64-bit number, we would append another element, <code>0xFFFFFFFF00000000</code>, to <code>b</code>, append <code>32</code> to <code>S</code>, and loop from <code>5</code> to <code>0</code>. This method is much slower than the earlier table-lookup version, but if you don't want big table or your architecture is slow to access memory, it's a good choice. The second variation involves slightly more operations, but it may be faster on machines with high branch costs (e.g. PowerPC).</p>
+<p><strong>Notes:*</strong></p>
+<p><em>The second version was sent to me by Eric Cole on January 7, 2006.</em></p>
+<p><em>Andrew Shapira subsequently trimmed a few operations off of it and sent me his variation (above) on Sept. 1, 2007.</em></p>
+<p><em>The third variation was suggested to me by John Owens on April 24, 2002; it's faster, but it is only suitable when the input is known to be a power of 2.</em></p>
+<p><em>On May 25, 2003, Ken Raeburn suggested improving the general case by using smaller numbers for <code>b[]</code>, which load faster on some architectures (for instance if the word size is 16 bits, then only one load instruction may be needed). These values work for the general version, but not for the special-case version below it, where <code>v</code> is a power of 2;</em></p>
+<p><em>Glenn Slayden brought this oversight to my attention on December 12, 2003.</em></p>
+<h2 id="find-the-log-base-2-of-an-n-bit-integer-in-o-lg-n-operations-with-multiply-and-lookup">Find the log base 2 of an N-bit integer in O(lg(N)) operations with multiply and lookup</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above computes the log base 2 of a 32-bit integer with a small table lookup and multiply. It requires only 13 operations, compared to (up to) 20 for the previous method. The purely table-based method requires the fewest operations, but this offers a reasonable compromise between table size and speed.</p>
+<p>If you know that <code>v</code> is a power of 2, then you only need the following:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Eric Cole devised this January 8, 2006 after reading about the entry below to round up to a power of 2 and the method below for computing the number of trailing bits with a multiply and lookup using a DeBruijn sequence.</em></p>
+<p><em>On December 10, 2009, Mark Dickinson shaved off a couple operations by requiring <code>v</code> be rounded up to one less than the next power of 2 rather than the power of 2.</em></p>
+<h2 id="find-integer-log-base-10-of-an-integer">Find integer log base 10 of an integer</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The integer log base 10 is computed by first using one of the techniques above for finding the log base 2. By the relationship <code>log10(v) = log2(v) / log2(10)</code>, we need to multiply it by <code>1/log2(10)</code>, which is approximately <code>1233/4096</code>, or <code>1233</code> followed by a right shift of <code>12</code>. Adding one is needed because the <code>IntegerLogBase2</code> rounds down. Finally, since the value <code>t</code> is only an approximation that may be off by one, the exact value is found by subtracting the result of <code>v &lt; PowersOf10[t]</code>.</p>
+<p>This method takes 6 more operations than <code>IntegerLogBase2</code>. It may be sped up (on machines with fast memory access) by modifying the log base 2 table-lookup method above so that the entries hold what is computed for <code>t</code> (that is, pre-add, -mulitply, and -shift). Doing so would require a total of only 9 operations to find the log base 10, assuming 4 tables were used (one for each byte of <code>v</code>).</p>
+<p><strong>Notes:</strong></p>
+<p><em>Eric Cole suggested I add a version of this on January 7, 2006.</em></p>
+<h2 id="find-integer-log-base-10-of-an-integer-the-obvious-way">Find integer log base 10 of an integer the obvious way</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This method works well when the input is uniformly distributed over 32-bit values because 76% of the inputs are caught by the first compare, 21% are caught by the second compare, 2% are caught by the third, and so on (chopping the remaining down by 90% with each comparision). As a result, less than 2.6 operations are needed on average.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On April 18, 2007, Emanuel Hoogeveen suggested a variation on this where the conditions used divisions, which were not as fast as simple comparisons.</em></p>
+<h2 id="find-integer-log-base-2-of-a-32-bit-ieee-float">Find integer log base 2 of a 32-bit IEEE float</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The above is fast, but IEEE 754-compliant architectures utilize subnormal (also called denormal) floating point numbers. These have the exponent bits set to zero (signifying <code>pow(2,-127))</code>, and the mantissa is not normalized, so it contains leading zeros and thus the <code>log2</code> must be computed from the mantissa. To accomodate for subnormal numbers, use the following:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>On June 20, 2004, Sean A. Irvine suggested that I include code to handle subnormal numbers.</em></p>
+<p><em>On June 11, 2005, Falk Hüffner pointed out that ISO C99 6.5/7 specified undefined behavior for the common type punning idiom `</em>(int <em>)&amp;<code>, though it has worked on 99.9% of C compilers. He proposed using</code>memcpy` for maximum portability or a union with a float and an int for better code generation than memcpy on some compilers.</em></p>
+<h2 id="find-integer-log-base-2-of-the-pow-2-r-root-of-a-32-bit-ieee-float-for-unsigned-integer-r-">Find integer log base 2 of the pow(2, r)-root of a 32-bit IEEE float (for unsigned integer r)</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>So, if <code>r</code> is <code>0</code>, for example, we have <code>c = int(log2((double) v))</code>. If <code>r</code> is <code>1</code>, then we have <code>c = int(log2(sqrt((double) v)))</code>. If <code>r</code> is <code>2</code>, then we have <code>c = int(log2(pow((double) v, 1./4)))</code>.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On June 11, 2005, Falk Hüffner pointed out that ISO C99 6.5/7 left the type punning idiom `</em>(int *)&amp;<code>undefined, and he suggested using</code>memcpy`.</p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-linearly">Count the consecutive zero bits (trailing) on the right linearly</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The average number of trailing zero bits in a (uniformly distributed) random binary number is one, so this <code>O(trailing zeros)</code> solution isn't that bad compared to the faster methods below.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Jim Cole suggested I add a linear-time method for counting the trailing zeros on August 15, 2007.</em></p>
+<p><em>On October 22, 2007, Jason Cunningham pointed out that I had neglected to paste the unsigned modifier for <code>v</code>.</em></p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-in-parallel">Count the consecutive zero bits (trailing) on the right in parallel</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Here, we are basically doing the same operations as finding the log base 2 in parallel, but we first isolate the lowest 1 bit, and then proceed with <code>c</code> starting at the maximum and decreasing. The number of operations is at most <code>3 * lg(N) + 4</code>, roughly, for <code>N</code> bit words.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Bill Burdick suggested an optimization, reducing the time from `4 </em> lg(N)` on February 4, 2011.*</p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-by-binary-search">Count the consecutive zero bits (trailing) on the right by binary search</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above is similar to the previous method, but it computes the number of trailing zeros by accumulating <code>c</code> in a manner akin to binary search. In the first step, it checks if the bottom 16 bits of <code>v</code> are zeros, and if so, shifts <code>v</code> right 16 bits and adds 16 to <code>c</code>, which reduces the number of bits in <code>v</code> to consider by half. Each of the subsequent conditional steps likewise halves the number of bits until there is only 1.</p>
+<p>This method is faster than the last one (by about 33%) because the bodies of the if statements are executed less often.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Matt Whitlock suggested this on January 25, 2006.</em></p>
+<p><em>Andrew Shapira shaved a couple operations off on Sept. 5, 2007 (by setting <code>c=1</code> and unconditionally subtracting at the end).</em></p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-by-casting-to-a-float">Count the consecutive zero bits (trailing) on the right by casting to a float</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Although this only takes about 6 operations, the time to convert an integer to a float can be high on some machines. The exponent of the 32-bit IEEE floating point representation is shifted down, and the bias is subtracted to give the position of the least significant 1 bit set in <code>v</code>. If <code>v</code> is zero, then the result is <code>-127</code>.</p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-with-modulus-division-and-lookup">Count the consecutive zero bits (trailing) on the right with modulus division and lookup</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above finds the number of zeros that are trailing on the right, so binary <code>0100</code> would produce <code>2</code>. It makes use of the fact that the first 32 bit position values are relatively prime with <code>37</code>, so performing a modulus division with <code>37</code> gives a unique number from <code>0</code> to <code>36</code> for each. These numbers may then be mapped to the number of zeros using a small lookup table. It uses only 4 operations, however indexing into a table and performing modulus division may make it unsuitable for some situations. I came up with this independently and then searched for a subsequence of the table values, and found it was invented earlier by Reiser, according to Hacker's Delight.</p>
+<h2 id="count-the-consecutive-zero-bits-trailing-on-the-right-with-multiply-and-lookup">Count the consecutive zero bits (trailing) on the right with multiply and lookup</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Converting bit vectors to indices of set bits is an example use for this. It requires one more operation than the earlier one involving modulus division, but the multiply may be faster. The expression <code>(v &amp; -v)</code> extracts the least significant 1 bit from <code>v</code>. The constant <code>0x077CB531UL</code> is a de Bruijn sequence, which produces a unique pattern of bits into the high 5 bits for each possible bit position that it is multiplied against. When there are no bits set, it returns <code>0</code>. More information can be found by reading the paper Using de Bruijn Sequences to Index 1 in a Computer Word by Charles E. Leiserson, Harald Prokof, and Keith H. Randall.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On October 8, 2005 Andrew Shapira suggested I add this.</em></p>
+<p><em>Dustin Spicuzza asked me on April 14, 2009 to cast the result of the multiply to a 32-bit type so it would work when compiled with 64-bit ints.</em></p>
+<h2 id="round-up-to-the-next-highest-power-of-2-by-float-casting">Round up to the next highest power of 2 by float casting</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above uses 8 operations, but works on all <code>v &lt;= (1&lt;&lt;31)</code>.</p>
+<h4 id="quick-and-dirty-version-for-domain-of-1-v-1-25-">Quick and dirty version, for domain of <code>1 &lt; v &lt; (1&lt;&lt;25)</code>:</h4>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Although the quick and dirty version only uses around 6 operations, it is roughly three times slower than the technique below (which involves 12 operations) when benchmarked on an Athlon™ XP 2100+ CPU. Some CPUs will fare better with it, though.</p>
+<p><strong>Notes:</strong></p>
+<p><em>On September 27, 2005 Andi Smithers suggested I include a technique for casting to floats to find the lg of a number for rounding up to a power of 2. Similar to the quick and dirty version here, his version worked with values less than <code>(1&lt;&lt;25)</code>, due to mantissa rounding, but it used one more operation.</em></p>
+<h2 id="round-up-to-the-next-highest-power-of-2">Round up to the next highest power of 2</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>In 12 operations, this code computes the next highest power of 2 for a 32-bit integer. The result may be expressed by the formula <code>1U &lt;&lt; (lg(v - 1) + 1)</code>. Note that in the edge case where <code>v</code> is <code>0</code>, it returns <code>0</code>, which isn't a power of 2; you might append the expression <code>v += (v == 0)</code> to remedy this if it matters. It would be faster by 2 operations to use the formula and the log base 2 method that uses a lookup table, but in some situations, lookup tables are not suitable, so the above code may be best. (On a Athlon™ XP 2100+ I've found the above shift-left and then OR code is as fast as using a single BSR assembly language instruction, which scans in reverse to find the highest set bit.) It works by copying the highest set bit to all of the lower bits, and then adding one, which results in carries that set all of the lower bits to 0 and one bit beyond the highest set bit to 1. If the original number was a power of 2, then the decrement will reduce it to one less, so that we round up to the same original value.</p>
+<p><strong>Notes:</strong></p>
+<p><em>You might alternatively compute the next higher power of 2 in only 8 or 9 operations using a lookup table for <code>floor(lg(v))</code> and then evaluating <code>1&lt;&lt;(1+floor(lg(v)))</code>; Atul Divekar suggested I mention this on September 5, 2010.</em></p>
+<p><em>Devised by Sean Anderson, Sepember 14, 2001.</em></p>
+<p><em>Pete Hart pointed me to a couple newsgroup posts by him and William Lewis in February of 1997, where they arrive at the same algorithm.</em></p>
+<h2 id="interleave-bits-the-obvious-way">Interleave bits the obvious way</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>Interleaved bits (aka Morton numbers) are useful for linearizing 2D integer coordinates, so <code>x</code> and <code>y</code> are combined into a single number that can be compared easily and has the property that a number is usually close to another if their <code>x</code> and <code>y</code> values are close.</p>
+<h2 id="interleave-bits-by-table-lookup">Interleave bits by table lookup</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>For more speed, use an additional table with values that are <code>MortonTable256</code> pre-shifted one bit to the left. This second table could then be used for the <code>y</code> lookups, thus reducing the operations by two, but almost doubling the memory required. Extending this same idea, four tables could be used, with two of them pre-shifted by 16 to the left of the previous two, so that we would only need 11 operations total.</p>
+<h2 id="interleave-bits-with-64-bit-multiply">Interleave bits with 64-bit multiply</h2>
+<p>In 11 operations, this version interleaves bits of two bytes (rather than shorts, as in the other versions), but many of the operations are 64-bit multiplies so it isn't appropriate for all machines. The input parameters, <code>x</code> and <code>y</code>, should be less than <code>256</code>.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Holger Bettag was inspired to suggest this technique on October 10, 2004 after reading the multiply-based bit reversals here.</em></p>
+<h2 id="interleave-bits-by-binary-magic-numbers">Interleave bits by Binary Magic Numbers</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<h2 id="determine-if-a-word-has-a-zero-byte">Determine if a word has a zero byte</h2>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code above may be useful when doing a fast string copy in which a word is copied at a time; it uses 5 operations. On the other hand, testing for a <code>null</code> byte in the obvious ways (which follow) have at least 7 operations (when counted in the most sparing way), and at most 12.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The code at the beginning of this section (labeled "Fewer operations") works by first zeroing the high bits of the 4 bytes in the word. Subsequently, it adds a number that will result in an overflow to the high bit of a byte if any of the low bits were initialy set. Next the high bits of the original word are ORed with these values; thus, the high bit of a byte is set <strong>iff</strong> any bit in the byte was set. Finally, we determine if any of these high bits are zero by ORing with ones everywhere except the high bits and inverting the result. Extending to 64 bits is trivial; simply increase the constants to be <code>0x7F7F7F7F7F7F7F7F</code>.</p>
+<p>For an additional improvement, a fast pretest that requires only 4 operations may be performed to determine if the word may have a zero byte. The test also returns true if the high byte is <code>0x80</code>, so there are occasional false positives, but the slower and more reliable version above may then be used on candidates for an overall increase in speed with correct output.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>There is yet a faster method — use <code>hasless(v, 1)</code>, which is defined below; it works in 4 operations and requires no subsquent verification. It simplifies to:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The subexpression <code>(v - 0x01010101UL)</code>, evaluates to a high bit set in any byte whenever the corresponding byte in <code>v</code> is zero or greater than <code>0x80</code>. The sub-expression <code>~v &amp; 0x80808080UL</code> evaluates to high bits set in bytes where the byte of <code>v</code> doesn't have its high bit set (so the byte was less than <code>0x80</code>). Finally, by ANDing these two sub-expressions the result is the high bits set where the bytes in <code>v</code> were zero, since the high bits set due to a value greater than <code>0x80</code> in the first sub-expression are masked off by the second.</p>
+<p><strong>Notes:</strong></p>
+<p><em>Paul Messmer suggested the fast pretest improvement on October 2, 2004.</em></p>
+<p><em>Juha Järvi later suggested <code>hasless(v, 1)</code> on April 6, 2005, which he found on Paul Hsieh's Assembly Lab; previously it was written in a newsgroup post on April 27, 1987 by Alan Mycroft.</em></p>
+<h2 id="determine-if-a-word-has-a-byte-equal-to-n">Determine if a word has a byte equal to n</h2>
+<p>We may want to know if any byte in a word has a specific value. To do so, we can XOR the value to test with a word that has been filled with the byte values in which we're interested. Because XORing a value with itself results in a zero byte and nonzero otherwise, we can pass the result to <code>haszero</code>.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Stephen M Bennet suggested this on December 13, 2009 after reading the entry for <code>haszero</code>.</em></p>
+<h2 id="determine-if-a-word-has-a-byte-less-than-n">Determine if a word has a byte less than n</h2>
+<p>Test if a word <code>x</code> contains an unsigned byte with <code>value &lt; n</code>. Specifically for <code>n=1</code>, it can be used to find a 0-byte by examining one long at a time, or any byte by XORing x with a mask first. Uses 4 arithmetic/logical operations when <code>n</code> is constant.</p>
+<p>Requirements: <code>x&gt;=0</code>; <code>0&lt;=n&lt;=128</code></p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>To count the number of bytes in <code>x</code> that are less than <code>n</code> in 7 operations, use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Juha Järvi sent this clever technique to me on April 6, 2005.</em></p>
+<p><em>The countless macro was added by Sean Anderson on April 10, 2005, inspired by Juha's <code>countmore</code>, below.</em></p>
+<h2 id="determine-if-a-word-has-a-byte-greater-than-n">Determine if a word has a byte greater than n</h2>
+<p>Test if a word <code>x</code> contains an unsigned byte with <code>value &gt; n</code>. Uses 3 arithmetic/logical operations when <code>n</code> is constant.</p>
+<p>Requirements: <code>x&gt;=0</code>; <code>0&lt;=n&lt;=127</code></p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>To count the number of bytes in <code>x</code> that are more than <code>n</code> in 6 operations, use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="text plain" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor><p><strong>Notes:</strong></p>
+<p><em>The macro <code>hasmore</code> was suggested by Juha Järvi on April 6, 2005, and he added countmore on April 8, 2005.</em></p>
+<h2 id="determine-if-a-word-has-a-byte-between-m-and-n">Determine if a word has a byte between m and n</h2>
+<p>When <code>m &lt; n</code>, this technique tests if a word <code>x</code> contains an unsigned byte <code>value</code>, such that <code>m &lt; value &lt; n</code>. It uses 7 arithmetic/logical operations when <code>n</code> and <code>m</code> are constant.</p>
+<p>Note: Bytes that equal <code>n</code> can be reported by <code>likelyhasbetween</code> as false positives, so this should be checked by character if a certain result is needed.</p>
+<p>Requirements: <code>x&gt;=0</code>; <code>0&lt;=m&lt;=127</code>; <code>0&lt;=n&lt;=128</code></p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>This technique would be suitable for a fast pretest. A variation that takes one more operation (8 total for constant <code>m</code> and <code>n</code>) but provides the exact answer is:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>To count the number of bytes in <code>x</code> that are between <code>m</code> and <code>n</code> (exclusive) in 10 operations, use:</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Juha Järvi suggested likelyhasbetween on April 6, 2005.</em></p>
+<p><em>From there, Sean Anderson created <code>hasbetween</code> and <code>countbetween</code> on April 10, 2005.</em></p>
+<h2 id="compute-the-lexicographically-next-bit-permutation">Compute the lexicographically next bit permutation</h2>
+<p>Suppose we have a pattern of <code>N</code> bits set to <code>1</code> in an integer and we want the next permutation of <code>N</code> <code>1</code> bits in a lexicographical sense. For example, if <code>N</code> is <code>3</code> and the bit pattern is <code>00010011</code>, the next patterns would be <code>00010101</code>, <code>00010110</code>, <code>00011001</code>, <code>00011010</code>, <code>00011100</code>, <code>00100011</code>, and so forth. The following is a fast way to compute the next permutation.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p>The <code>__builtin_ctz(v)</code> GNU C compiler intrinsic for x86 CPUs returns the number of trailing zeros. If you are using Microsoft compilers for x86, the intrinsic is <code>_BitScanForward</code>. These both emit a bsf instruction, but equivalents may be available for other architectures. If not, then consider using one of the methods for counting the consecutive zero bits mentioned earlier.</p>
+<p>Here is another version that tends to be slower because of its division operator, but it does not require counting the trailing zeros.</p>
+<atom-text-editor class="editor" callattachhooks="true" gutter-hidden="" data-grammar="source c" data-encoding="utf8"><div class="underlayer"></div><div class="overlayer"></div></atom-text-editor>
+<p><strong>Notes:</strong></p>
+<p><em>Thanks to Dario Sneidermanis of Argentina, who provided this on November 28, 2009.</em></p>
+<p><strong><em>A Belorussian translation (provided by Webhostingrating) is available.</em></strong></p>
