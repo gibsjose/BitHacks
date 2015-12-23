@@ -5,6 +5,82 @@
 Individually, the code snippets here are in the public domain (unless otherwise noted) — feel free to use them however you please. The aggregate collection and descriptions are © 1997-2005 Sean Eron Anderson. *The code and descriptions are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY and without even the implied warranty of merchantability or fitness for a particular purpose.* As of May 5, 2005, all the code has been tested thoroughly. Thousands of people have read it. Moreover, Professor Randal Bryant, the Dean of Computer Science at Carnegie Mellon University, has personally tested almost everything with his Uclid code verification system. What he hasn't tested, I have checked against all possible inputs on a 32-bit machine. To the first person to inform me of a legitimate bug in the code, I'll pay a bounty of US$10 (by check or Paypal). If directed to a charity, I'll pay US$20.
 
 
+##Contents
+- [About the operation counting methodology](#about-the-operation-counting-methodology)
+- [Compute the sign of an integer](#compute-the-sign-of-an-integer)
+- [Detect if two integers have opposite signs](#detect-if-two-integers-have-opposite-signs)
+- [Compute the integer absolute value (abs) without branching](#compute-the-integer-absolute-value-abs-without-branching)
+- [Compute the minimum (min) or maximum (max) of two integers without branching](#compute-the-minimum-min-or-maximum-max-of-two-integers-without-branching)
+- [Determining if an integer is a power of 2](#determining-if-an-integer-is-a-power-of-2)
+- Sign extending
+ - [Sign extending from a constant bit-width](#sign-extending-from-a-constant-bit-width)
+ - [Sign extending from a variable bit-width](#sign-extending-from-a-variable-bit-width)
+ - [Sign extending from a variable bit-width in 3 operations](#sign-extending-from-a-variable-bit-width-in-3-operations)
+- [Conditionally set or clear bits without branching](#conditionally-set-or-clear-bits-without-branching)
+- [Conditionally negate a value without branching](#conditionally-negate-a-value-without-branching)
+- [Merge bits from two values according to a mask](#merge-bits-from-two-values-according-to-a-mask)
+- Counting bits set
+ - [Counting bits set, naive way](#counting-bits-set-naive-way)
+ - [Counting bits set by lookup table](#counting-bits-set-by-lookup-table)
+ - [Counting bits set, Brian Kernighan's way](#counting-bits-set-brian-kernighans-way)
+ - [Counting bits set in 14, 24, or 32-bit words using 64-bit instructions](#counting-bits-set-in-14-24-or-32-bit-words-using-64-bit-instructions)
+ - [Counting bits set, in parallel](#counting-bits-set-in-parallel)
+ - [Count bits set (rank) from the most-significant bit upto a given position](#count-bits-set-rank-from-the-most-significant-bit-upto-a-given-position)
+ - [Select the bit position (from the most-significant bit) with the given count (rank)](#select-the-bit-position-from-the-most-significant-bit-with-the-given-count-rank)
+- Computing parity (1 if an odd number of bits set, 0 otherwise)
+ - [Compute parity of a word the naive way](#computing-parity-the-naive-way)
+ - [Compute parity by lookup table](#compute-parity-by-lookup-table)
+ - [Compute parity of a byte using 64-bit multiply and modulus division](#compute-parity-of-a-byte-using-64-bit-multiply-and-modulus-division)
+ - [Compute parity of word with a multiply](#compute-parity-of-word-with-a-multiply)
+ - [Compute parity in parallel](#compute-parity-in-parallel)
+- Swapping Values
+ - [Swapping values with subtraction and addition](#swapping-values-with-subtraction-and-addition)
+ - [Swapping values with XOR](#swapping-values-with-xor)
+ - [Swapping individual bits with XOR](#swapping-individual-bits-with-xor)
+- Reversing bit sequences
+ - [Reverse bits the obvious way](#reverse-bits-the-obvious-way)
+ - [Reverse bits in word by lookup table](#reverse-bits-in-word-by-lookup-table)
+ - [Reverse the bits in a byte with 3 operations (64-bit multiply and modulus division)](#reverse-the-bits-in-a-byte-with-3-operations-64-bit-multiply-and-modulus-division)
+ - [Reverse the bits in a byte with 4 operations (64-bit multiply, no division)](#reverse-the-bits-in-a-byte-with-4-operations-64-bit-multiply-no-division)
+ - [Reverse the bits in a byte with 7 operations (no 64-bit, only 32)](#reverse-the-bits-in-a-byte-with-7-operations-no-64-bit)
+ - [Reverse an N-bit quantity in parallel with 5 * lg(N) operations](#reverse-an-n-bit-quantity-in-parallel-in-5--lgn-operations)
+- Modulus division (aka computing remainders)
+ - [Computing modulus division by 1 << s without a division operation (obvious)](#compute-modulus-division-by-1--s-without-a-division-operator)
+ - [Computing modulus division by (1 << s) - 1 without a division operation](#compute-modulus-division-by-1--s---1-without-a-division-operator)
+ - [Computing modulus division by (1 << s) - 1 in parallel without a division operation](#compute-modulus-division-by-1--s---1-in-parallel-without-a-division-operator)
+- Finding integer log base 2 of an integer (aka the position of the highest bit set)
+ - [Find the log base 2 of an integer with the MSB N set in O(N) operations (the obvious way)](#find-the-log-base-2-of-an-integer-with-the-msb-n-set-in-on-operations-the-obvious-way)
+ - [Find the integer log base 2 of an integer with an 64-bit IEEE float](#find-the-integer-log-base-2-of-an-integer-with-an-64-bit-ieee-float)
+ - [Find the log base 2 of an integer with a lookup table](#find-the-log-base-2-of-an-integer-with-a-lookup-table)
+ - [Find the log base 2 of an N-bit integer in O(lg(N)) operations](#find-the-log-base-2-of-an-n-bit-integer-in-olgn-operations)
+ - [Find the log base 2 of an N-bit integer in O(lg(N)) operations with multiply and lookup](#find-the-log-base-2-of-an-n-bit-integer-in-olgn-operations-with-multiply-and-lookup)
+- [Find integer log base 10 of an integer](#find-integer-log-base-10-of-an-integer)
+- [Find integer log base 10 of an integer the obvious way](#find-integer-log-base-10-of-an-integer-the-obvious-way)
+- [Find integer log base 2 of a 32-bit IEEE float](#find-integer-log-base-2-of-a-32-bit-ieee-float)
+- [Find integer log base 2 of the pow(2, r)-root of a 32-bit IEEE float (for unsigned integer r)](#find-integer-log-base-2-of-the-pow2-r-root-of-a-32-bit-ieee-float-for-unsigned-integer-r)
+- Counting consecutive trailing zero bits (or finding bit indices)
+ - [Count the consecutive zero bits (trailing) on the right linearly](#count-the-consecutive-zero-bits-trailing-on-the-right-linearly)
+ - [Count the consecutive zero bits (trailing) on the right in parallel](#count-the-consecutive-zero-bits-trailing-on-the-right-in-parallel)
+ - [Count the consecutive zero bits (trailing) on the right by binary search](#count-the-consecutive-zero-bits-trailing-on-the-right-by-binary-search)
+ - [Count the consecutive zero bits (trailing) on the right by casting to a float](#count-the-consecutive-zero-bits-trailing-on-the-right-by-casting-to-a-float)
+ - [Count the consecutive zero bits (trailing) on the right with modulus division and lookup](#count-the-consecutive-zero-bits-trailing-on-the-right-with-modulus-division-and-lookup)
+ - [Count the consecutive zero bits (trailing) on the right with multiply and lookup](#count-the-consecutive-zero-bits-trailing-on-the-right-with-multiply-and-lookup)
+- [Round up to the next highest power of 2 by float casting](#round-up-to-the-next-highest-power-of-2-by-float-casting)
+- [Round up to the next highest power of 2](#round-up-to-the-next-highest-power-of-2)
+- Interleaving bits (aka computing Morton Numbers)
+ - [Interleave bits the obvious way](#interleave-bits-the-obvious-way)
+ - [Interleave bits by table lookup](#interleave-bits-by-table-lookup)
+ - [Interleave bits with 64-bit multiply](#interleave-bits-with-64-bit-multiply)
+ - [Interleave bits by Binary Magic Numbers](#interleave-bits-by-binary-magic-numbers)
+- Testing for ranges of bytes in a word (and counting occurances found)
+ - [Determine if a word has a zero byte](#determine-if-a-word-has-a-zero-byte)
+ - [Determine if a word has a byte equal to n](#determine-if-a-word-has-a-byte-equal-to-n)
+ - [Determine if a word has byte less than n](#determine-if-a-word-has-a-byte-less-than-n)
+ - [Determine if a word has a byte greater than n](#determine-if-a-word-has-a-byte-greater-than-n)
+ - [Determine if a word has a byte between m and n](#determine-if-a-word-has-a-byte-between-m-and-n)
+- [Compute the lexicographically next bit permutation](#compute-the-lexicographically-next-bit-permutation)
+
+---
 
 ###About the operation counting methodology
 
@@ -61,9 +137,14 @@ sign = 1 ^ ((unsigned int)v >> (sizeof(int) * CHAR_BIT - 1)); // if v < 0 then 0
 int x, y;               // input values to compare signs
 
 bool f = ((x ^ y) < 0); // true iff x and y have opposite signs
-Manfred Weis suggested I add this entry on November 26, 2009.
-Compute the integer absolute value (abs) without branching
+```
 
+**Notes:**
+
+*Manfred Weis suggested I add this entry on November 26, 2009.*
+
+##Compute the integer absolute value (abs) without branching
+```c
 int v;           // we want to find the absolute value of v
 unsigned int r;  // the result goes here
 int const mask = v >> sizeof(int) * CHAR_BIT - 1;
@@ -699,7 +780,7 @@ This method of swapping is similar to the general purpose XOR swap trick, but in
 
 *On July 14, 2009 Hallvard Furuseth suggested that I change the `1 << n` to `1U << n` because the value was being assigned to an unsigned and to avoid shifting into a sign bit.*
 
-#Reverse bits the obvious way
+##Reverse bits the obvious way
 
 ```c
 unsigned int v;     // input bits to be reversed
