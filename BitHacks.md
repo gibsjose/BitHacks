@@ -6,8 +6,8 @@ Individually, the code snippets here are in the public domain (unless otherwise 
 
 
 ##Contents
-- [About the operation counting methodology](BitHacks.md/#about-the-operation-counting-methodology))
-- [Compute the sign of an integer](BitHacks.md/#compute-the-sign-of-an-integer))
+- [About the operation counting methodology](BitHacks.md/#about-the-operation-counting-methodology)
+- [Compute the sign of an integer](BitHacks.md/#compute-the-sign-of-an-integer)
 - [Detect if two integers have opposite signs](BitHacks.md/#detect-if-two-integers-have-opposite-signs)
 - [Compute the integer absolute value (abs) without branching](BitHacks.md/#compute-the-integer-absolute-value-abs-without-branching)
 - [Compute the minimum (min) or maximum (max) of two integers without branching](BitHacks.md/#compute-the-minimum-min-or-maximum-max-of-two-integers-without-branching)
