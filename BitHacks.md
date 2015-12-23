@@ -61,9 +61,14 @@ sign = 1 ^ ((unsigned int)v >> (sizeof(int) * CHAR_BIT - 1)); // if v < 0 then 0
 int x, y;               // input values to compare signs
 
 bool f = ((x ^ y) < 0); // true iff x and y have opposite signs
-Manfred Weis suggested I add this entry on November 26, 2009.
-Compute the integer absolute value (abs) without branching
+```
 
+**Notes:**
+
+*Manfred Weis suggested I add this entry on November 26, 2009.*
+
+##Compute the integer absolute value (abs) without branching
+```c
 int v;           // we want to find the absolute value of v
 unsigned int r;  // the result goes here
 int const mask = v >> sizeof(int) * CHAR_BIT - 1;
