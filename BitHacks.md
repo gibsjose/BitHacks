@@ -780,7 +780,7 @@ This method of swapping is similar to the general purpose XOR swap trick, but in
 
 *On July 14, 2009 Hallvard Furuseth suggested that I change the `1 << n` to `1U << n` because the value was being assigned to an unsigned and to avoid shifting into a sign bit.*
 
-#Reverse bits the obvious way
+##Reverse bits the obvious way
 
 ```c
 unsigned int v;     // input bits to be reversed
