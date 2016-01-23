@@ -3,7 +3,7 @@
 * **Converted to Markdown by Joe Gibson (@gibsjose) [joseph.gibson@nasa.gov](mailto:joseph.gibson@nasa.gov)**
 * **Edits and Table of Contents by Jeroen de Bruijn (@vidavidorra) [vidavidorra@gmail.com](mailto:vidavidorra@gmail.com)**
 
-## Forward
+## Introduction
 Sean Anderson's wonderful compilation of [Bit Twiddling Hacks](http://graphics.stanford.edu/~seander/bithacks.html), converted to a more readable [Markdown version](BitHacks.md) and accompanying [PDF](BitHacks.pdf).
 
 ## License
