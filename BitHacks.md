@@ -1,11 +1,15 @@
-# Bit Twiddling Hacks
-* **By Sean Eron Anderson [seander@cs.stanford.edu](seander@cs.stanford.edu)**
-* **Converted to Markdown by Joe Gibson (@gibsjose) [joseph.gibson@nasa.gov](joseph.gibson@nasa.gov)**
-* **Edits and Table of Contents by Jeroen de Bruijn (@vidavidorra) [vidavidorra@gmail.com](vidavidorra@gmail.com)**
+# [Bit Hacks](http://graphics.stanford.edu/~seander/bithacks.html)
+* **By Sean Eron Anderson [seander@cs.stanford.edu](mailto:seander@cs.stanford.edu)**
+* **Converted to Markdown by Joe Gibson (@gibsjose) [joseph.gibson@nasa.gov](mailto:joseph.gibson@nasa.gov)**
+* **Edits and Table of Contents by Jeroen de Bruijn (@vidavidorra) [vidavidorra@gmail.com](mailto:vidavidorra@gmail.com)**
 
->Individually, the code snippets here are in the public domain (unless otherwise noted) — feel free to use them however you please. The aggregate collection and descriptions are © 1997-2005 Sean Eron Anderson. *The code and descriptions are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY and without even the implied warranty of merchantability or fitness for a particular purpose.* As of May 5, 2005, all the code has been tested thoroughly. Thousands of people have read it. Moreover, Professor Randal Bryant, the Dean of Computer Science at Carnegie Mellon University, has personally tested almost everything with his Uclid code verification system. What he hasn't tested, I have checked against all possible inputs on a 32-bit machine. To the first person to inform me of a legitimate bug in the code, I'll pay a bounty of US$10 (by check or Paypal). If directed to a charity, I'll pay US$20.
+## Forward
+Sean Anderson's wonderful compilation of [Bit Twiddling Hacks](http://graphics.stanford.edu/~seander/bithacks.html), converted to a more readable [Markdown version](BitHacks.md) and accompanying [PDF](BitHacks.pdf).
 
-## Contents
+## License
+See the [original document](http://graphics.stanford.edu/~seander/bithacks.html) for license information.
+
+## Table of Contents
 - [About the operation counting methodology](#about-the-operation-counting-methodology)
 - [Compute the sign of an integer](#compute-the-sign-of-an-integer)
 - [Detect if two integers have opposite signs](#detect-if-two-integers-have-opposite-signs)
